@@ -78,11 +78,13 @@ from pytube.download_helper import (
 ### Using the command-line interface
 
 Using the CLI is remarkably straightforward as well. To download a video at the highest progressive quality, you can use the following command:
+
 ```bash
-$ pytube https://youtube.com/watch?v=2lAe1cqCOXo
+pytube https://youtube.com/watch?v=2lAe1cqCOXo
 ```
 
 You can also do the same for a playlist:
+
 ```bash
-$ pytube https://www.youtube.com/playlist?list=PLS1QulWo1RIaJECMeUT4LFwJ-ghgoSH6n
+pytube https://www.youtube.com/playlist?list=PLS1QulWo1RIaJECMeUT4LFwJ-ghgoSH6n
 ```
