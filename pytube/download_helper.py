@@ -101,13 +101,16 @@ def download_captions(url: str = ""):
         return "No URL provided."
     os.makedirs("captions", exist_ok=True)
     yt = YouTube(url)
-    yt.captions["en-US"].download(title=f"{yt.title}.srt", output_path="captions")
+    video_stream = yt.streams.get_lowest_resolution()
+    output_video = yt.title.replace(" ", "_")
+    output_video = "".join([c for c in output_video if c.isalnum() or c in "._- "])
+    yt.captions["en-US"].download(title=f"{output_video}.srt", output_path="captions")
     yt.captions["en-US"].json_captions
-    transcript = f"Captions of video titled `{yt.title}` at {url}:\n"
+    transcript = f"Transcription of video titled `{yt.title}` at {url}:\n"
     for event in yt.captions["en-US"].json_captions["events"]:
         for seg in event["segs"]:
             transcript += seg["utf8"]
     text = transcript.replace("\xa0", " ").replace("  ", " ").replace(" \n", " ")
-    with open(f"captions/{yt.title}.txt", "w") as f:
+    with open(f"captions/{output_video}.txt", "w") as f:
         f.write(text)
     return text
