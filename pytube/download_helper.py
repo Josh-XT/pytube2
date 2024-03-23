@@ -114,5 +114,4 @@ def download_captions(url: str = ""):
     text = transcript.replace("\xa0", " ").replace("  ", " ").replace(" \n", " ")
     # Find anything between [Ad Start] and [Ad End] and remove it
     text = re.sub(r"\[Ad Start\].*?\[Ad End\]", "", text, flags=re.DOTALL)
-    os.remove(f"captions/{output_video}.srt")
     return text
