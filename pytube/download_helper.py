@@ -106,11 +106,8 @@ def download_captions(url: str = ""):
     output_video = "".join([c for c in output_video if c.isalnum() or c in "._- "])
     yt.captions["en-US"].download(title=f"{output_video}.srt", output_path="captions")
     yt.captions["en-US"].json_captions
-    transcript = f"Transcription of video titled `{yt.title}` at {url}:\n"
+    transcript = f"Captions of video titled `{yt.title}` at {url}:\n"
     for event in yt.captions["en-US"].json_captions["events"]:
         for seg in event["segs"]:
             transcript += seg["utf8"]
-    text = transcript.replace("\xa0", " ").replace("  ", " ").replace(" \n", " ")
-    with open(f"captions/{output_video}.txt", "w") as f:
-        f.write(text)
-    return text
+    return transcript.replace("\xa0", " ").replace("  ", " ").replace(" \n", " ")
