@@ -94,3 +94,20 @@ def download_videos_from_list(filename="videos.txt"):
         for video in links:
             download_video(url=video)
     return "Downloaded videos from list."
+
+
+def download_captions(url: str = ""):
+    if not url:
+        return "No URL provided."
+    os.makedirs("captions", exist_ok=True)
+    yt = YouTube(url)
+    yt.captions["en-US"].download(title=f"{yt.title}.srt", output_path="captions")
+    yt.captions["en-US"].json_captions
+    transcript = f"Captions of video titled `{yt.title}` at {url}:\n"
+    for event in yt.captions["en-US"].json_captions["events"]:
+        for seg in event["segs"]:
+            transcript += seg["utf8"]
+    text = transcript.replace("\xa0", " ").replace("  ", " ").replace(" \n", " ")
+    with open(f"captions/{yt.title}.txt", "w") as f:
+        f.write(text)
+    return text
