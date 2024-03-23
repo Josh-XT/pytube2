@@ -17,14 +17,7 @@ try:
 except ImportError:
     subprocess.check_call([sys.executable, "-m", "pip", "install", "webdriver-manager"])
     from webdriver_manager.chrome import ChromeDriverManager
-try:
-    from pytube import YouTube
-except ImportError:
-    subprocess.run(["git", "clone", "https://github.com/Josh-XT/pytube"])
-    os.chdir("pytube")
-    subprocess.run(["pip", "install", "."])
-    os.chdir("..")
-    from pytube import YouTube
+from pytube import YouTube
 from pytube.innertube import _default_clients
 
 
