@@ -55,13 +55,8 @@ Pytube requires an installation of Python 3.6 or greater, as well as pip. (Pip i
 To install from PyPI with pip:
 
 ```bash
-$ python -m pip install pytube
-```
-
-Sometimes, the PyPI release becomes slightly outdated. To install from the source with pip:
-
-```bash
-$ python -m pip install git+https://github.com/pytube/pytube
+pip uninstall pytube -y
+pip install pytube2
 ```
 
 ### Using pytube in a Python script
@@ -69,15 +64,15 @@ $ python -m pip install git+https://github.com/pytube/pytube
 To download a video using the library in a script, you'll need to import the YouTube class from the library and pass an argument of the video URL. From there, you can access the streams and download them.
 
 ```python
- >>> from pytube import YouTube
- >>> YouTube('https://youtu.be/2lAe1cqCOXo').streams.first().download()
- >>> yt = YouTube('http://youtube.com/watch?v=2lAe1cqCOXo')
- >>> yt.streams
-  ... .filter(progressive=True, file_extension='mp4')
-  ... .order_by('resolution')
-  ... .desc()
-  ... .first()
-  ... .download()
+from pytube.download_helper import (
+    download_videos_from_channels,
+    download_video,
+    download_videos_from_list,
+)
+
+# download_videos_from_channels(channels=["channel1", "channel2"])
+# download_videos_from_list(filename="videos.txt")
+# download_video(url="https://www.youtube.com/watch?v=VIDEO_ID")
 ```
 
 ### Using the command-line interface
