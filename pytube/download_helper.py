@@ -1,4 +1,5 @@
 import os
+import re
 import sys
 import subprocess
 import time
@@ -110,4 +111,8 @@ def download_captions(url: str = ""):
     for event in yt.captions["en-US"].json_captions["events"]:
         for seg in event["segs"]:
             transcript += seg["utf8"]
-    return transcript.replace("\xa0", " ").replace("  ", " ").replace(" \n", " ")
+    text = transcript.replace("\xa0", " ").replace("  ", " ").replace(" \n", " ")
+    # Find anything between [Ad Start] and [Ad End] and remove it
+    text = re.sub(r"\[Ad Start\].*?\[Ad End\]", "", text, flags=re.DOTALL)
+    os.remove(f"captions/{output_video}.srt")
+    return text
