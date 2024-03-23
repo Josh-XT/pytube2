@@ -21,7 +21,9 @@ from pytube import YouTube
 from pytube.innertube import _default_clients
 
 
-def get_videos_from_channel(channel_name="officialalphablocks"):
+def get_videos_from_channel(channel_name: str = ""):
+    if not channel_name:
+        return "No channel name provided."
     chrome_options = webdriver.ChromeOptions()
     chrome_options.add_argument("--headless")
     driver = webdriver.Chrome(
@@ -40,7 +42,9 @@ def get_videos_from_channel(channel_name="officialalphablocks"):
     return video_ids
 
 
-def download_video(url="https://www.youtube.com/watch?v=UhJrHNE9vD0"):
+def download_video(url: str = ""):
+    if not url:
+        return "No URL provided."
     os.makedirs("videos", exist_ok=True)
     try:
         yt = YouTube(url)
@@ -67,7 +71,9 @@ def download_video(url="https://www.youtube.com/watch?v=UhJrHNE9vD0"):
     return f"Downloaded video from {url}"
 
 
-def download_videos_from_channels(channels=["officialalphablocks", "Numberblocks"]):
+def download_videos_from_channels(channels=[]):
+    if not channels:
+        return "No channels provided."
     filename = datetime.now().isoformat().replace(":", "-").split(".")[0] + ".txt"
     videos = []
     for channel in channels:
