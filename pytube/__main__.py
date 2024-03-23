@@ -268,8 +268,6 @@ class YouTube:
                         use_oauth=self.use_oauth,
                         allow_cache=self.allow_oauth_cache,
                     )
-                    innertube_response = innertube.player(self.video_id)
-                    self._vid_info = innertube_response
                     break
                 except:
                     continue
