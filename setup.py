@@ -14,17 +14,19 @@ with open(os.path.join(here, "pytube", "version.py")) as fp:
     exec(fp.read())
 
 setup(
-    name="pytube",
+    name="pytube2",
     version=__version__,  # noqa: F821
     author="Ronnie Ghose, Taylor Fox Dahlin, Nick Ficano",
     author_email="hey@pytube.io",
     packages=["pytube", "pytube.contrib"],
-    package_data={"": ["LICENSE"],},
-    url="https://github.com/pytube/pytube",
+    package_data={
+        "": ["LICENSE"],
+    },
+    url="https://github.com/Josh-XT/pytube2",
     license="The Unlicense (Unlicense)",
     entry_points={
-        "console_scripts": [
-            "pytube = pytube.cli:main"],},
+        "console_scripts": ["pytube = pytube.cli:main"],
+    },
     classifiers=[
         "Development Status :: 5 - Production/Stable",
         "Environment :: Console",
@@ -51,8 +53,13 @@ setup(
     zip_safe=True,
     python_requires=">=3.7",
     project_urls={
-        "Bug Reports": "https://github.com/pytube/pytube/issues",
+        "Bug Reports": "https://github.com/Josh-XT/pytube/issues",
         "Read the Docs": "https://pytube.io",
     },
-    keywords=["youtube", "download", "video", "stream",],
+    keywords=[
+        "youtube",
+        "download",
+        "video",
+        "stream",
+    ],
 )
