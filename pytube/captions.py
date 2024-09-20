@@ -77,31 +77,49 @@ class Caption:
 
     def xml_caption_to_srt(self, xml_captions: str) -> str:
         """Convert xml caption tracks to "SubRip Subtitle (srt)".
-
         :param str xml_captions:
             XML formatted caption tracks.
         """
         segments = []
-        root = ElementTree.fromstring(xml_captions)
-        for i, child in enumerate(list(root.iter("p"))):
-            text = child.text or ""
-            caption = unescape(
-                text.replace("\n", " ").replace("  ", " "),
+        try:
+            root = ElementTree.fromstring(xml_captions)
+        except ElementTree.ParseError as e:
+            print(f"Warning: Failed to parse the XML captions. Error: {e}")
+            return ""  # Return an empty string if parsing fails
+
+        try:
+            for i, child in enumerate(
+                list(root[0])
+            ):  # Assuming the first child is the correct element
+                text = child.text or ""
+                caption = unescape(
+                    text.replace("\n", " ").replace("  ", " "),
+                )
+                try:
+                    duration = float(child.attrib["d"]) / 1000.0
+                except KeyError:
+                    duration = 0.0
+                try:
+                    start = float(child.attrib["t"]) / 1000.0
+                except KeyError:
+                    start = 0.0
+                end = start + duration
+                sequence_number = i + 1  # convert from 0-indexed to 1.
+                line = "{seq}\n{start} --> {end}\n{text}\n".format(
+                    seq=sequence_number,
+                    start=self.float_to_srt_time_format(start),
+                    end=self.float_to_srt_time_format(end),
+                    text=caption,
+                )
+                segments.append(line)
+
+        except IndexError as e:
+            print(
+                f"Warning: The XML structure does not contain the expected elements. Error: {e}"
             )
-            try:
-                duration = float(child.attrib["d"])
-            except KeyError:
-                duration = 0.0
-            start = float(child.attrib["t"])
-            end = start + duration
-            sequence_number = i + 1  # convert from 0-indexed to 1.
-            line = "{seq}\n{start} --> {end}\n{text}\n".format(
-                seq=sequence_number,
-                start=self.float_to_srt_time_format(start),
-                end=self.float_to_srt_time_format(end),
-                text=caption,
-            )
-            segments.append(line)
+        except Exception as e:
+            print(f"An unexpected error occurred: {e}")
+
         return "\n".join(segments).strip()
 
     def download(
