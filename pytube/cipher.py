@@ -86,19 +86,20 @@ class Cipher:
         signature = list(ciphered_signature)
 
         for js_func in self.transform_plan:
-            name, argument = self.parse_function(js_func)  # type: ignore
-            signature = self.transform_map[name](signature, argument)
-            logger.debug(
-                "applied transform function\n"
-                "output: %s\n"
-                "js_function: %s\n"
-                "argument: %d\n"
-                "function: %s",
-                "".join(signature),
-                name,
-                argument,
-                self.transform_map[name],
-            )
+            if js_func:
+                name, argument = self.parse_function(js_func)  # type: ignore
+                signature = self.transform_map[name](signature, argument)
+                logger.debug(
+                    "applied transform function\n"
+                    "output: %s\n"
+                    "js_function: %s\n"
+                    "argument: %d\n"
+                    "function: %s",
+                    "".join(signature),
+                    name,
+                    argument,
+                    self.transform_map[name],
+                )
 
         return "".join(signature)
 
@@ -187,7 +188,10 @@ def get_transform_plan(js: str) -> List[str]:
     'DE.kT(a,21)']
     """
     name = re.escape(get_initial_function_name(js))
-    pattern = r"%s=function\(\w\){[a-z=\.\(\"\)]*;(.*);(?:.+)}" % name
+    pattern = (
+        r"%s=function\(\w\){[a-z=\.\(\"\)]*;((\w+\.\w+\([\w\"\'\[\]\(\)\.\,\s]*\);)+)(?:.+)}"
+        % name
+    )
     logger.debug("getting transform plan")
     return regex_search(pattern, js, group=1).split(";")
 
@@ -680,10 +684,7 @@ def map_functions(js_func: str) -> Callable:
         # function(a,b){var c=a[0];a[0]=a[b%a.length];a[b]=c}
         (r"{var\s\w=\w\[0\];\w\[0\]=\w\[\w\%\w.length\];\w\[\w\]=\w}", swap),
         # function(a,b){var c=a[0];a[0]=a[b%a.length];a[b%a.length]=c}
-        (
-            r"{var\s\w=\w\[0\];\w\[0\]=\w\[\w\%\w.length\];\w\[\w\%\w.length\]=\w}",
-            swap,
-        ),
+        (r"{var\s\w=\w\[0\];\w\[0\]=\w\[\w\%\w.length\];\w\[\w\%\w.length\]=\w}", swap),
     )
 
     for pattern, fn in mapper:
