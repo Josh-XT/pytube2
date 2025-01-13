@@ -12,7 +12,6 @@ functions" (2) maps them to Python equivalents and (3) taking the ciphered
 signature and decoding it.
 
 """
-
 import logging
 import re
 from itertools import chain
@@ -31,12 +30,14 @@ class Cipher:
         var_regex = re.compile(r"^\w+\W")
         var_match = var_regex.search(self.transform_plan[0])
         if not var_match:
-            raise RegexMatchError(caller="__init__", pattern=var_regex.pattern)
+            raise RegexMatchError(
+                caller="__init__", pattern=var_regex.pattern
+            )
         var = var_match.group(0)[:-1]
         self.transform_map = get_transform_map(js, var)
         self.js_func_patterns = [
             r"\w+\.(\w+)\(\w,(\d+)\)",
-            r"\w+\[(\"\w+\")\]\(\w,(\d+)\)",
+            r"\w+\[(\"\w+\")\]\(\w,(\d+)\)"
         ]
 
         self.throttling_plan = get_throttling_plan(js)
@@ -51,15 +52,15 @@ class Cipher:
 
         # First, update all instances of 'b' with the list(initial_n)
         for i in range(len(self.throttling_array)):
-            if self.throttling_array[i] == "b":
+            if self.throttling_array[i] == 'b':
                 self.throttling_array[i] = initial_n
 
         for step in self.throttling_plan:
             curr_func = self.throttling_array[int(step[0])]
             if not callable(curr_func):
-                logger.debug(f"{curr_func} is not callable.")
-                logger.debug(f"Throttling array:\n{self.throttling_array}\n")
-                raise ExtractError(f"{curr_func} is not callable.")
+                logger.debug(f'{curr_func} is not callable.')
+                logger.debug(f'Throttling array:\n{self.throttling_array}\n')
+                raise ExtractError(f'{curr_func} is not callable.')
 
             first_arg = self.throttling_array[int(step[1])]
 
@@ -69,7 +70,7 @@ class Cipher:
                 second_arg = self.throttling_array[int(step[2])]
                 curr_func(first_arg, second_arg)
 
-        self.calculated_n = "".join(initial_n)
+        self.calculated_n = ''.join(initial_n)
         return self.calculated_n
 
     def get_signature(self, ciphered_signature: str) -> str:
@@ -86,20 +87,19 @@ class Cipher:
         signature = list(ciphered_signature)
 
         for js_func in self.transform_plan:
-            if js_func:
-                name, argument = self.parse_function(js_func)  # type: ignore
-                signature = self.transform_map[name](signature, argument)
-                logger.debug(
-                    "applied transform function\n"
-                    "output: %s\n"
-                    "js_function: %s\n"
-                    "argument: %d\n"
-                    "function: %s",
-                    "".join(signature),
-                    name,
-                    argument,
-                    self.transform_map[name],
-                )
+            name, argument = self.parse_function(js_func)  # type: ignore
+            signature = self.transform_map[name](signature, argument)
+            logger.debug(
+                "applied transform function\n"
+                "output: %s\n"
+                "js_function: %s\n"
+                "argument: %d\n"
+                "function: %s",
+                "".join(signature),
+                name,
+                argument,
+                self.transform_map[name],
+            )
 
         return "".join(signature)
 
@@ -130,7 +130,9 @@ class Cipher:
                 fn_name, fn_arg = parse_match.groups()
                 return fn_name, int(fn_arg)
 
-        raise RegexMatchError(caller="parse_function", pattern="js_func_patterns")
+        raise RegexMatchError(
+            caller="parse_function", pattern="js_func_patterns"
+        )
 
 
 def get_initial_function_name(js: str) -> str:
@@ -143,18 +145,9 @@ def get_initial_function_name(js: str) -> str:
     """
 
     function_patterns = [
-        r"\b[cs]\s*&&\s*[adf]\.set\([^,]+\s*,\s*encodeURIComponent\s*\(\s*(?P<sig>[a-zA-Z0-9$]+)\(",  # noqa: E501
-        r"\b[a-zA-Z0-9]+\s*&&\s*[a-zA-Z0-9]+\.set\([^,]+\s*,\s*encodeURIComponent\s*\(\s*(?P<sig>[a-zA-Z0-9$]+)\(",  # noqa: E501
-        r'(?:\b|[^a-zA-Z0-9$])(?P<sig>[a-zA-Z0-9$]{2})\s*=\s*function\(\s*a\s*\)\s*{\s*a\s*=\s*a\.split\(\s*""\s*\)',  # noqa: E501
-        r'(?P<sig>[a-zA-Z0-9$]+)\s*=\s*function\(\s*a\s*\)\s*{\s*a\s*=\s*a\.split\(\s*""\s*\)',  # noqa: E501
-        r'(["\'])signature\1\s*,\s*(?P<sig>[a-zA-Z0-9$]+)\(',
-        r"\.sig\|\|(?P<sig>[a-zA-Z0-9$]+)\(",
-        r"yt\.akamaized\.net/\)\s*\|\|\s*.*?\s*[cs]\s*&&\s*[adf]\.set\([^,]+\s*,\s*(?:encodeURIComponent\s*\()?\s*(?P<sig>[a-zA-Z0-9$]+)\(",  # noqa: E501
-        r"\b[cs]\s*&&\s*[adf]\.set\([^,]+\s*,\s*(?P<sig>[a-zA-Z0-9$]+)\(",  # noqa: E501
-        r"\b[a-zA-Z0-9]+\s*&&\s*[a-zA-Z0-9]+\.set\([^,]+\s*,\s*(?P<sig>[a-zA-Z0-9$]+)\(",  # noqa: E501
-        r"\bc\s*&&\s*a\.set\([^,]+\s*,\s*\([^)]*\)\s*\(\s*(?P<sig>[a-zA-Z0-9$]+)\(",  # noqa: E501
-        r"\bc\s*&&\s*[a-zA-Z0-9]+\.set\([^,]+\s*,\s*\([^)]*\)\s*\(\s*(?P<sig>[a-zA-Z0-9$]+)\(",  # noqa: E501
-        r"\bc\s*&&\s*[a-zA-Z0-9]+\.set\([^,]+\s*,\s*\([^)]*\)\s*\(\s*(?P<sig>[a-zA-Z0-9$]+)\(",  # noqa: E501
+        r'(?P<sig>[a-zA-Z0-9_$]+)\s*=\s*function\(\s*(?P<arg>[a-zA-Z0-9_$]+)\s*\)\s*{\s*(?P=arg)\s*=\s*(?P=arg)\.split\(\s*""\s*\)\s*;\s*[^}]+;\s*return\s+(?P=arg)\.join\(\s*""\s*\)',
+        r'(?:\b|[^a-zA-Z0-9_$])(?P<sig>[a-zA-Z0-9_$]{2,})\s*=\s*function\(\s*a\s*\)\s*{\s*a\s*=\s*a\.split\(\s*""\s*\)(?:;[a-zA-Z0-9_$]{2}\.[a-zA-Z0-9_$]{2}\(a,\d+\))?',
+        r'\b(?P<var>[a-zA-Z0-9_$]+)&&\((?P=var)=(?P<sig>[a-zA-Z0-9_$]{2,})\(decodeURIComponent\((?P=var)\)\)',
     ]
     logger.debug("finding initial function name")
     for pattern in function_patterns:
@@ -164,7 +157,9 @@ def get_initial_function_name(js: str) -> str:
             logger.debug("finished regex search, matched: %s", pattern)
             return function_match.group(1)
 
-    raise RegexMatchError(caller="get_initial_function_name", pattern="multiple")
+    raise RegexMatchError(
+        caller="get_initial_function_name", pattern="multiple"
+    )
 
 
 def get_transform_plan(js: str) -> List[str]:
@@ -188,10 +183,7 @@ def get_transform_plan(js: str) -> List[str]:
     'DE.kT(a,21)']
     """
     name = re.escape(get_initial_function_name(js))
-    pattern = (
-        r"%s=function\(\w\){[a-z=\.\(\"\)]*;((\w+\.\w+\([\w\"\'\[\]\(\)\.\,\s]*\);)+)(?:.+)}"
-        % name
-    )
+    pattern = r"%s=function\(\w\){[a-z=\.\(\"\)]*;(.*);(?:.+)}" % name
     logger.debug("getting transform plan")
     return regex_search(pattern, js, group=1).split(";")
 
@@ -261,40 +253,53 @@ def get_throttling_function_name(js: str) -> str:
         The name of the function used to compute the throttling parameter.
     """
     function_patterns = [
-        # https://github.com/ytdl-org/youtube-dl/issues/29326#issuecomment-865985377
-        # https://github.com/yt-dlp/yt-dlp/commit/48416bc4a8f1d5ff07d5977659cb8ece7640dcd8
-        # var Bpa = [iha];
-        # ...
-        # a.C && (b = a.get("n")) && (b = Bpa[0](b), a.set("n", b),
-        # Bpa.length || iha("")) }};
-        # In the above case, `iha` is the relevant function name
-        r'a\.[a-zA-Z]\s*&&\s*\([a-z]\s*=\s*a\.get\("n"\)\)\s*&&.*?\|\|\s*([a-z]+)',
-        r"\([a-z]\s*=\s*([a-zA-Z0-9$]+)(\[\d+\])?\([a-z]\)",
-        r"\([a-z]\s*=\s*([a-zA-Z0-9$]+)(\[\d+\])\([a-z]\)",
+        r'''(?x)
+            (?:
+                \.get\("n"\)\)&&\(b=|
+                (?:
+                    b=String\.fromCharCode\(110\)|
+                    (?P<str_idx>[a-zA-Z0-9_$.]+)&&\(b="nn"\[\+(?P=str_idx)\]
+                )
+                (?:
+                    ,[a-zA-Z0-9_$]+\(a\))?,c=a\.
+                    (?:
+                        get\(b\)|
+                        [a-zA-Z0-9_$]+\[b\]\|\|null
+                    )\)&&\(c=|
+                \b(?P<var>[a-zA-Z0-9_$]+)=
+            )(?P<nfunc>[a-zA-Z0-9_$]+)(?:\[(?P<idx>\d+)\])?\([a-zA-Z]\)
+            (?(var),[a-zA-Z0-9_$]+\.set\((?:"n+"|[a-zA-Z0-9_$]+)\,(?P=var)\))'''
     ]
-    logger.debug("Finding throttling function name")
+    logger.debug('Finding throttling function name')
     for pattern in function_patterns:
         regex = re.compile(pattern)
         function_match = regex.search(js)
         if function_match:
             logger.debug("finished regex search, matched: %s", pattern)
-            if len(function_match.groups()) == 1:
-                return function_match.group(1)
-            idx = function_match.group(2)
-            if idx:
-                idx = idx.strip("[]")
-                array = re.search(
-                    r"var {nfunc}\s*=\s*(\[.+?\])".format(
-                        nfunc=re.escape(function_match.group(1))
-                    ),
-                    js,
-                )
-                if array:
-                    array = array.group(1).strip("[]").split(",")
-                    array = [x.strip() for x in array]
-                    return array[int(idx)]
 
-    raise RegexMatchError(caller="get_throttling_function_name", pattern="multiple")
+            func = function_match.group('nfunc')
+            idx = function_match.group('idx')
+
+            logger.debug(f'func is: {func}')
+            logger.debug(f'idx is: {idx}')
+
+            logger.debug('Checking throttling function name')
+            if idx:
+                n_func_check_pattern = fr'var {re.escape(func)}\s*=\s*\[(.+?)];'
+                n_func_found = re.search(n_func_check_pattern, js)
+
+                if n_func_found:
+                    throttling_function = n_func_found.group(1)
+                    logger.debug(f'Throttling function name is: {throttling_function}')
+                    return throttling_function
+
+                raise RegexMatchError(
+                    caller="get_throttling_function_name", pattern=f"{n_func_check_pattern} in {js_url}"
+                )
+
+    raise RegexMatchError(
+        caller="get_throttling_function_name", pattern=f"multiple in {js_url}"
+    )
 
 
 def get_throttling_function_code(js: str) -> str:
@@ -315,7 +320,7 @@ def get_throttling_function_code(js: str) -> str:
     match = regex.search(js)
 
     # Extract the code within curly braces for the function itself, and merge any split lines
-    code_lines_list = find_object_from_startpoint(js, match.span()[1]).split("\n")
+    code_lines_list = find_object_from_startpoint(js, match.span()[1]).split('\n')
     joined_lines = "".join(code_lines_list)
 
     # Prepend function definition (e.g. `Dea=function(a)`)
@@ -336,6 +341,8 @@ def get_throttling_function_array(js: str) -> List[Any]:
     array_regex = re.compile(array_start)
     match = array_regex.search(raw_code)
 
+    if match is None:
+        return []
     array_raw = find_object_from_startpoint(raw_code, match.span()[1] - 1)
     str_array = throttling_array_split(array_raw)
 
@@ -348,7 +355,7 @@ def get_throttling_function_array(js: str) -> List[Any]:
             # Not an integer value.
             pass
 
-        if el == "null":
+        if el == 'null':
             converted_array.append(None)
             continue
 
@@ -357,29 +364,17 @@ def get_throttling_function_array(js: str) -> List[Any]:
             converted_array.append(el[1:-1])
             continue
 
-        if el.startswith("function"):
+        if el.startswith('function'):
             mapper = (
-                (
-                    r"{for\(\w=\(\w%\w\.length\+\w\.length\)%\w\.length;\w--;\)\w\.unshift\(\w.pop\(\)\)}",
-                    throttling_unshift,
-                ),  # noqa:E501
+                (r"{for\(\w=\(\w%\w\.length\+\w\.length\)%\w\.length;\w--;\)\w\.unshift\(\w.pop\(\)\)}", throttling_unshift),  # noqa:E501
                 (r"{\w\.reverse\(\)}", throttling_reverse),
                 (r"{\w\.push\(\w\)}", throttling_push),
                 (r";var\s\w=\w\[0\];\w\[0\]=\w\[\w\];\w\[\w\]=\w}", throttling_swap),
                 (r"case\s\d+", throttling_cipher_function),
-                (
-                    r"\w\.splice\(0,1,\w\.splice\(\w,1,\w\[0\]\)\[0\]\)",
-                    throttling_nested_splice,
-                ),  # noqa:E501
+                (r"\w\.splice\(0,1,\w\.splice\(\w,1,\w\[0\]\)\[0\]\)", throttling_nested_splice),  # noqa:E501
                 (r";\w\.splice\(\w,1\)}", js_splice),
-                (
-                    r"\w\.splice\(-\w\)\.reverse\(\)\.forEach\(function\(\w\){\w\.unshift\(\w\)}\)",
-                    throttling_prepend,
-                ),  # noqa:E501
-                (
-                    r"for\(var \w=\w\.length;\w;\)\w\.push\(\w\.splice\(--\w,1\)\[0\]\)}",
-                    throttling_reverse,
-                ),  # noqa:E501
+                (r"\w\.splice\(-\w\)\.reverse\(\)\.forEach\(function\(\w\){\w\.unshift\(\w\)}\)", throttling_prepend),  # noqa:E501
+                (r"for\(var \w=\w\.length;\w;\)\w\.push\(\w\.splice\(--\w,1\)\[0\]\)}", throttling_reverse),  # noqa:E501
             )
 
             found = False
@@ -427,10 +422,10 @@ def get_throttling_plan(js: str):
     matches = step_regex.findall(transform_plan_raw)
     transform_steps = []
     for match in matches:
-        if match[4] != "":
-            transform_steps.append((match[0], match[1], match[4]))
+        if match[4] != '':
+            transform_steps.append((match[0],match[1],match[4]))
         else:
-            transform_steps.append((match[0], match[1]))
+            transform_steps.append((match[0],match[1]))
 
     return transform_steps
 
@@ -547,7 +542,7 @@ def throttling_cipher_function(d: list, e: str):
         e.split("")
     )
     """
-    h = list("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_")
+    h = list('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_')
     f = 96
     # by naming it "this" we can more closely reflect the js
     this = list(e)
@@ -558,7 +553,9 @@ def throttling_cipher_function(d: list, e: str):
 
     for m, l in enumerate(copied_list):
         bracket_val = (h.index(l) - h.index(this[m]) + m - 32 + f) % len(h)
-        this.append(h[bracket_val])
+        this.append(
+            h[bracket_val]
+        )
         d[m] = h[bracket_val]
         f -= 1
 
@@ -585,8 +582,18 @@ def throttling_nested_splice(d: list, e: int):
     case that was not considered.
     """
     e = throttling_mod_func(d, e)
-    inner_splice = js_splice(d, e, 1, d[0])
-    js_splice(d, 0, 1, inner_splice[0])
+    inner_splice = js_splice(
+        d,
+        e,
+        1,
+        d[0]
+    )
+    js_splice(
+        d,
+        0,
+        1,
+        inner_splice[0]
+    )
 
 
 def throttling_prepend(d: list, e: int):
@@ -657,10 +664,10 @@ def js_splice(arr: list, start: int, delete_count=None, *items):
     if not delete_count or delete_count >= len(arr) - start:
         delete_count = len(arr) - start  # noqa: N806
 
-    deleted_elements = arr[start : start + delete_count]
+    deleted_elements = arr[start:start + delete_count]
 
     # Splice appropriately.
-    new_arr = arr[:start] + list(items) + arr[start + delete_count :]
+    new_arr = arr[:start] + list(items) + arr[start + delete_count:]
 
     # Replace contents of input array
     arr.clear()
@@ -684,7 +691,10 @@ def map_functions(js_func: str) -> Callable:
         # function(a,b){var c=a[0];a[0]=a[b%a.length];a[b]=c}
         (r"{var\s\w=\w\[0\];\w\[0\]=\w\[\w\%\w.length\];\w\[\w\]=\w}", swap),
         # function(a,b){var c=a[0];a[0]=a[b%a.length];a[b%a.length]=c}
-        (r"{var\s\w=\w\[0\];\w\[0\]=\w\[\w\%\w.length\];\w\[\w\%\w.length\]=\w}", swap),
+        (
+            r"{var\s\w=\w\[0\];\w\[0\]=\w\[\w\%\w.length\];\w\[\w\%\w.length\]=\w}",
+            swap,
+        ),
     )
 
     for pattern, fn in mapper:
