@@ -161,7 +161,6 @@ def get_initial_function_name(js: str) -> str:
         caller="get_initial_function_name", pattern="multiple"
     )
 
-
 def get_transform_plan(js: str) -> List[str]:
     """Extract the "transform plan".
 
@@ -183,10 +182,9 @@ def get_transform_plan(js: str) -> List[str]:
     'DE.kT(a,21)']
     """
     name = re.escape(get_initial_function_name(js))
-    pattern = r"%s=function\(\w\){[a-z=\.\(\"\)]*;(.*);(?:.+)}" % name
+    pattern = r"%s=function\(\w\){[a-zA-Z0-9$=_\.\(\"\)]*;(.*);(?:.+)}" % name
     logger.debug("getting transform plan")
     return regex_search(pattern, js, group=1).split(";")
-
 
 def get_transform_object(js: str, var: str) -> List[str]:
     """Extract the "transform object".
