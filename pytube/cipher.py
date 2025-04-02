@@ -187,27 +187,7 @@ def get_transform_plan(js: str) -> List[str]:
     return regex_search(pattern, js, group=1).split(";")
 
 def get_transform_object(js: str, var: str) -> List[str]:
-    """Extract the "transform object".
-
-    The "transform object" contains the function definitions referenced in the
-    "transform plan". The ``var`` argument is the obfuscated variable name
-    which contains these functions, for example, given the function call
-    ``DE.AJ(a,15)`` returned by the transform plan, "DE" would be the var.
-
-    :param str js:
-        The contents of the base.js asset file.
-    :param str var:
-        The obfuscated variable name that stores an object with all functions
-        that descrambles the signature.
-
-    **Example**:
-
-    >>> get_transform_object(js, 'DE')
-    ['AJ:function(a){a.reverse()}',
-    'VR:function(a,b){a.splice(0,b)}',
-    'kT:function(a,b){var c=a[0];a[0]=a[b%a.length];a[b]=c}']
-
-    """
+    """Extract the transform object."""
     patterns = [
         # Standard pattern
         r"var %s={(.*?)};" % re.escape(var),
@@ -216,7 +196,13 @@ def get_transform_object(js: str, var: str) -> List[str]:
         # Pattern with this keyword (special case)
         r"(?:var )?%s\s*=\s*{(.*?)};" % re.escape(var),
         # Alternative format with different spacing
-        r"%s\s*=\s*{\s*(.*?)\s*};" % re.escape(var)
+        r"%s\s*=\s*{\s*(.*?)\s*};" % re.escape(var),
+        # YouTube 2025 pattern (object property)
+        r"var [a-zA-Z0-9_$]+ = {[^}]*%s:function\(a\){return ([^}]*)},?" % re.escape(var),
+        # YouTube 2025 pattern (nested function)
+        r"function %s\(\w+\)\s*{\s*[^{]*{([^}]*)}" % re.escape(var),
+        # Added pattern
+        r"(?:var\s+)?%s\s*=\s*function\(\w+\)\s*{(.*?)}[,;]" % re.escape(var),
     ]
 
     logger.debug("getting transform object")
@@ -227,6 +213,13 @@ def get_transform_object(js: str, var: str) -> List[str]:
         if transform_match:
             logger.debug(f"Pattern matched: {pattern}")
             return transform_match.group(1).replace("\n", " ").split(", ")
+
+    # Broad search for the variable name in a function context
+    var_pattern = r'(?:function|var|const|let)\s+%s\s*[=\(][^{]*{([^}]*)}' % re.escape(var)
+    var_match = re.search(var_pattern, js, re.DOTALL)
+    if var_match:
+        logger.debug("Found variable in broader context")
+        return var_match.group(1).replace("\n", " ").split(", ")
 
     # If we get here, no patterns matched
     raise RegexMatchError(caller="get_transform_object",
@@ -248,11 +241,27 @@ def get_transform_map(js: str, var: str) -> Dict:
     """
     transform_object = get_transform_object(js, var)
     mapper = {}
+
+    # Handle case where transform object is actually function contents
+    # For pattern r"(?:var\s+)?%s\s*=\s*function\(\w+\)\s*{(.*?)}[,;]"
+    if len(transform_object) == 1 and ":" not in transform_object[0]:
+        logger.debug("Found direct function definition")
+        # Use the var name itself as the key for the function
+        mapper[var] = map_functions(transform_object[0])
+        return mapper
+
     for obj in transform_object:
-        # AJ:function(a){a.reverse()} => AJ, function(a){a.reverse()}
-        name, function = obj.split(":", 1)
-        fn = map_functions(function)
-        mapper[name] = fn
+        try:
+            # Original approach: AJ:function(a){a.reverse()} => AJ, function(a){a.reverse()}
+            name, function = obj.split(":", 1)
+            fn = map_functions(function)
+            mapper[name] = fn
+        except ValueError:
+            # For cases where we get direct function content without name:function format
+            logger.debug(f"Could not split function definition: {obj}")
+            # Default to using the var name as a fallback
+            mapper[var] = map_functions(obj)
+
     return mapper
 
 
