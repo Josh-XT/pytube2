@@ -1,30 +1,28 @@
-# Use Python 3.9 as the base image
-FROM python:3.9-slim
+FROM python:3.10.12
 
-# Set working directory
-WORKDIR /app
+RUN apt-get update
 
-# Install dependencies (ffmpeg for video processing if needed)
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-    ffmpeg \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+ENV TZ=Europe/Rome
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
-# Copy the pytube2 library files
-COPY . /app/pytube2/
+WORKDIR /home/khadas/Edge2/Sniper-Bot
 
-# Install the library
-WORKDIR /app/pytube2
-RUN pip install -e .
+# Copia il file requirements.txt nel container
+COPY requirements.txt .
 
-# Create a directory for downloads
-RUN mkdir -p /downloads
+# Copia il pacchetto della tua libreria personalizzata nel container
+COPY dist/pytube2-15.0.14.tar.gz /tmp/
 
-# Set the working directory for running commands
-WORKDIR /downloads
+# Installa le dipendenze e la tua libreria personalizzata in un unico passaggio
+RUN pip install --no-cache-dir -r requirements.txt && \
+    pip install /tmp/pytube2-15.0.14.tar.gz && \
+    rm -rf /root/.cache/pip
 
-# Set entrypoint to pytube command
-ENTRYPOINT ["pytube"]
-# Default command shows help
-CMD ["--help"]
+# Copia il resto del codice dell'applicazione nella directory di lavoro
+COPY . .
+
+# Esponi la porta 8081
+EXPOSE 8081
+
+# Specifica il comando per eseguire l'applicazione
+CMD ["python3", "Youtube_downloader.py"]
