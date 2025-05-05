@@ -8,7 +8,7 @@ name = "pypi"
 [dev-packages]
 bumpversion = "*"
 twine = "*"
-black = "==19.10b0"
+black = "==24.3.0"
 coveralls = "*"
 coverage = "*"
 flake8 = "*"
