@@ -398,7 +398,7 @@ def apply_signature(stream_manifest: Dict, vid_info: Dict, js: str) -> None:
         The contents of the base.js asset file.
 
     """
-    cipher = Cipher(js=js)
+    cipher = None  # Lazy initialization - only create if needed
 
     for i, stream in enumerate(stream_manifest):
         try:
@@ -410,6 +410,10 @@ def apply_signature(stream_manifest: Dict, vid_info: Dict, js: str) -> None:
             ).get("liveStreamability")
             if live_stream:
                 raise LiveStreamError("UNKNOWN")
+            # No URL in stream, skip it
+            logger.debug("No URL in stream, skipping")
+            continue
+            
         # 403 Forbidden fix.
         if "signature" in url or (
             "s" not in stream and ("&sig=" in url or "&lsig=" in url)
@@ -419,6 +423,15 @@ def apply_signature(stream_manifest: Dict, vid_info: Dict, js: str) -> None:
             # the whole signature descrambling entirely.
             logger.debug("signature found, skip decipher")
             continue
+
+        # Check if this stream needs signature decryption
+        if "s" not in stream:
+            logger.debug("No ciphered signature in stream, skipping decipher")
+            continue
+
+        # Lazy initialization of cipher - only when we actually need it
+        if cipher is None:
+            cipher = Cipher(js=js)
 
         signature = cipher.get_signature(ciphered_signature=stream["s"])
 
