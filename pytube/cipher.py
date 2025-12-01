@@ -184,61 +184,98 @@ def get_initial_function_name(js: str) -> str:
     """
     # Built-in JavaScript functions that should NOT be returned
     js_builtins = {
-        'decodeURIComponent', 'encodeURIComponent', 'decodeURI', 'encodeURI',
-        'escape', 'unescape', 'parseInt', 'parseFloat', 'isNaN', 'isFinite',
-        'eval', 'Function', 'Object', 'Array', 'String', 'Number', 'Boolean',
-        'Date', 'Math', 'JSON', 'RegExp', 'Error', 'Promise', 'Map', 'Set',
-        'console', 'window', 'document', 'undefined', 'null', 'true', 'false',
-        'NaN', 'Infinity', 'this', 'arguments', 'prototype', 'constructor',
-        'toString', 'valueOf', 'hasOwnProperty', 'length', 'split', 'join',
-        'reverse', 'splice', 'slice', 'concat', 'push', 'pop', 'shift', 'unshift'
+        "decodeURIComponent",
+        "encodeURIComponent",
+        "decodeURI",
+        "encodeURI",
+        "escape",
+        "unescape",
+        "parseInt",
+        "parseFloat",
+        "isNaN",
+        "isFinite",
+        "eval",
+        "Function",
+        "Object",
+        "Array",
+        "String",
+        "Number",
+        "Boolean",
+        "Date",
+        "Math",
+        "JSON",
+        "RegExp",
+        "Error",
+        "Promise",
+        "Map",
+        "Set",
+        "console",
+        "window",
+        "document",
+        "undefined",
+        "null",
+        "true",
+        "false",
+        "NaN",
+        "Infinity",
+        "this",
+        "arguments",
+        "prototype",
+        "constructor",
+        "toString",
+        "valueOf",
+        "hasOwnProperty",
+        "length",
+        "split",
+        "join",
+        "reverse",
+        "splice",
+        "slice",
+        "concat",
+        "push",
+        "pop",
+        "shift",
+        "unshift",
     }
 
     function_patterns = [
         # PRIORITY 1: Look for the actual signature scrambling function definition
         # This pattern matches: name=function(a){a=a.split("");...;return a.join("")}
         r'(?:^|[;\s])([a-zA-Z0-9_$]{2,})\s*=\s*function\s*\(\s*a\s*\)\s*\{\s*a\s*=\s*a\.split\s*\(\s*""\s*\)',
-        
         # PRIORITY 2: Same but with var keyword
         r'var\s+([a-zA-Z0-9_$]{2,})\s*=\s*function\s*\(\s*a\s*\)\s*\{\s*a\s*=\s*a\.split\s*\(\s*""\s*\)',
-        
         # PRIORITY 3: Arrow function format: name=a=>{a=a.split("")...}
         r'(?:^|[;\s])([a-zA-Z0-9_$]{2,})\s*=\s*a\s*=>\s*\{\s*a\s*=\s*a\.split\s*\(\s*""\s*\)',
-        
         # PRIORITY 4: Generic variable parameter name
         r'(?:^|[;\s])([a-zA-Z0-9_$]{2,})\s*=\s*function\s*\(\s*\w\s*\)\s*\{\s*\w\s*=\s*\w\.split\s*\(\s*""\s*\)',
-        
         # PRIORITY 5: Patterns that reference the signature function in URL building
-        r'\b[cs]\s*&&\s*[adf]\.set\([^,]+\s*,\s*encodeURIComponent\s*\(\s*([a-zA-Z0-9_$]{2,})\s*\(',
-        r'\bc\s*&&\s*d\.set\([^,]+\s*,\s*(?:encodeURIComponent\s*\(\s*)?([a-zA-Z0-9_$]{2,})\s*\(',
-        
+        r"\b[cs]\s*&&\s*[adf]\.set\([^,]+\s*,\s*encodeURIComponent\s*\(\s*([a-zA-Z0-9_$]{2,})\s*\(",
+        r"\bc\s*&&\s*d\.set\([^,]+\s*,\s*(?:encodeURIComponent\s*\(\s*)?([a-zA-Z0-9_$]{2,})\s*\(",
         # PRIORITY 6: m=Xyz(decodeURIComponent(...)) pattern - the function BEFORE decodeURIComponent
-        r'\bm\s*=\s*([a-zA-Z0-9_$]{2,})\s*\(\s*decodeURIComponent\s*\(',
-        
+        r"\bm\s*=\s*([a-zA-Z0-9_$]{2,})\s*\(\s*decodeURIComponent\s*\(",
         # PRIORITY 7: var&&(var=sig(decodeURIComponent(var))) pattern
-        r'\b([a-zA-Z0-9_$]+)\s*&&\s*\(\s*\1\s*=\s*([a-zA-Z0-9_$]{2,})\s*\(\s*decodeURIComponent\s*\(\s*\1\s*\)',
-        
+        r"\b([a-zA-Z0-9_$]+)\s*&&\s*\(\s*\1\s*=\s*([a-zA-Z0-9_$]{2,})\s*\(\s*decodeURIComponent\s*\(\s*\1\s*\)",
         # PRIORITY 8: signature or sig property patterns
         r'(["\'])signature\1\s*,\s*([a-zA-Z0-9_$]{2,})\s*\(',
-        r'\.sig\s*\|\|\s*([a-zA-Z0-9_$]{2,})\s*\(',
+        r"\.sig\s*\|\|\s*([a-zA-Z0-9_$]{2,})\s*\(",
     ]
-    
+
     logger.debug("finding initial function name")
-    
+
     for pattern in function_patterns:
         regex = re.compile(pattern, re.DOTALL)
         function_match = regex.search(js)
         if function_match:
             # Get the captured group(s)
             groups = function_match.groups()
-            
+
             # Try to find a valid function name from the groups
             for group in groups:
                 if group and group not in js_builtins:
                     logger.debug(f"finished regex search, matched: {pattern}")
                     logger.debug(f"found initial function name: {group}")
                     return group
-            
+
             # If all groups were builtins, continue to next pattern
             logger.debug(f"Pattern matched but returned builtin: {groups}")
             continue
@@ -279,9 +316,11 @@ def get_transform_plan(js: str) -> List[str]:
         r"%s=function\(\w\){[a-zA-Z0-9$=_\.\(\"\)\[\]]*;(.*);(?:.+)}" % name,
         r"%s=function\(\w\){.*?;(.*);.*?return.*?}" % name,
         r"%s=function\(\w\){.*?split.*?;(.*);.*?join.*?}" % name,
-        r"%s=function\(\w+\){.*?=.*?\.split\(.*?\);(.*?);return.*?\.join\(.*?\)}" % name,
+        r"%s=function\(\w+\){.*?=.*?\.split\(.*?\);(.*?);return.*?\.join\(.*?\)}"
+        % name,
         # Pattern with newlines and whitespace
-        r"%s\s*=\s*function\s*\(\s*\w\s*\)\s*\{[^}]*?split[^;]*;([^}]+);[^}]*?join" % name,
+        r"%s\s*=\s*function\s*\(\s*\w\s*\)\s*\{[^}]*?split[^;]*;([^}]+);[^}]*?join"
+        % name,
         # Very flexible pattern - just find the function and extract its body
         r"%s\s*=\s*function\s*\([^)]*\)\s*\{([^}]+)\}" % name,
     ]
@@ -295,11 +334,11 @@ def get_transform_plan(js: str) -> List[str]:
             if match:
                 plan_str = match.group(1)
                 logger.debug(f"Raw plan string: {plan_str[:500]}...")
-                
+
                 # Split by semicolons but handle nested parentheses
                 plan = plan_str.split(";")
                 logger.debug(f"Split plan (first 5): {plan[:5]}")
-                
+
                 # Filter out empty strings and validate that we have actual function calls
                 # Accept both dot notation (DE.AJ) and bracket notation (A1[G[4]])
                 plan = [
@@ -319,45 +358,50 @@ def get_transform_plan(js: str) -> List[str]:
     logger.debug("Trying fallback method to find transform plan")
     fallback_patterns = [
         # Look for function with split/join pattern
-        rf'{name}\s*=\s*function\s*\(\s*(\w)\s*\)\s*\{{',
-        rf'(?:var\s+)?{name}\s*=\s*function\s*\(\s*(\w)\s*\)',
+        rf"{name}\s*=\s*function\s*\(\s*(\w)\s*\)\s*\{{",
+        rf"(?:var\s+)?{name}\s*=\s*function\s*\(\s*(\w)\s*\)",
     ]
-    
+
     for pattern in fallback_patterns:
         match = re.search(pattern, js)
         if match:
-            arg_name = match.group(1) if match.lastindex else 'a'
+            arg_name = match.group(1) if match.lastindex else "a"
             # Find the full function body starting from this position
             start_pos = match.end()
             brace_count = 1
             end_pos = start_pos
-            
+
             # Skip the opening brace if not included
-            while end_pos < len(js) and js[end_pos] != '{':
+            while end_pos < len(js) and js[end_pos] != "{":
                 end_pos += 1
             end_pos += 1  # Skip the opening brace
             brace_start = end_pos
-            
+
             while end_pos < len(js) and brace_count > 0:
-                if js[end_pos] == '{':
+                if js[end_pos] == "{":
                     brace_count += 1
-                elif js[end_pos] == '}':
+                elif js[end_pos] == "}":
                     brace_count -= 1
                 end_pos += 1
-            
-            func_body = js[brace_start:end_pos-1]
+
+            func_body = js[brace_start : end_pos - 1]
             logger.debug(f"Found function body: {func_body[:300]}...")
-            
+
             # Extract statements between split and join/return
-            split_match = re.search(rf'{arg_name}\s*=\s*{arg_name}\.split\([^)]*\);', func_body)
+            split_match = re.search(
+                rf"{arg_name}\s*=\s*{arg_name}\.split\([^)]*\);", func_body
+            )
             if split_match:
-                remaining = func_body[split_match.end():]
+                remaining = func_body[split_match.end() :]
                 # Find the return statement
-                return_match = re.search(r'return\s+\w+\.join', remaining)
+                return_match = re.search(r"return\s+\w+\.join", remaining)
                 if return_match:
-                    plan_section = remaining[:return_match.start()]
-                    plan = [p.strip() for p in plan_section.split(';') 
-                            if p.strip() and ('.' in p or '[' in p) and '(' in p]
+                    plan_section = remaining[: return_match.start()]
+                    plan = [
+                        p.strip()
+                        for p in plan_section.split(";")
+                        if p.strip() and ("." in p or "[" in p) and "(" in p
+                    ]
                     if plan:
                         logger.debug(f"Fallback transform plan: {plan}")
                         return plan

@@ -413,7 +413,7 @@ def apply_signature(stream_manifest: Dict, vid_info: Dict, js: str) -> None:
             # No URL in stream, skip it
             logger.debug("No URL in stream, skipping")
             continue
-            
+
         # 403 Forbidden fix.
         if "signature" in url or (
             "s" not in stream and ("&sig=" in url or "&lsig=" in url)
